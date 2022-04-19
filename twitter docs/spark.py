@@ -42,6 +42,40 @@ def process_rdd(time, rdd):
 		e = sys.exc_info()[0]
 		print("Error: %s" % e)
 
+
+def print_rdd(time, rdd):
+	print("----------- %s -----------" % str(time))
+	try:
+		# Get spark sql singleton context from the current context
+		sql_context = get_sql_context_instance(rdd.context)
+		print("1")
+		# convert the RDD to Row RDD
+		# row_rdd = rdd.map(lambda w: Row(hashtag=w[0], hashtag_count=w[1]))
+		row_rdd = rdd.map(lambda w: w)
+
+		print("2")
+		print(row_rdd)
+		print(row_rdd.collect())
+
+		if not row_rdd.isEmpty():
+			# create a DF from the Row RDD
+			hashtags_df = sql_context.createDataFrame(row_rdd)
+			print("3")
+			# Register the dataframe as table
+			# hashtags_df.registerTempTable("hashtags")
+			print("4")
+			# get the top 10 hashtags from the table using SQL and print them
+			# hashtag_counts_df = sql_context.sql("select hashtag, hashtag_count from hashtags order by hashtag_count desc limit 10")
+			print("5")
+			hashtags_df.show()
+			print("6")
+			# call this method to prepare top 10 hashtags DF and send them
+		
+	except:
+		e = sys.exc_info()[0]
+		print("Error: %s" % e)
+
+
 # create spark configuration
 conf = SparkConf()
 conf.setAppName("TwitterStreamApp")
@@ -62,7 +96,9 @@ hashtags = words.filter(lambda w: '#' in w).map(lambda x: (x, 1))
 # adding the count of each hashtag to its last count
 tags_totals = hashtags.updateStateByKey(aggregate_tags_count)
 # do processing for each RDD generated in each interval
-tags_totals.foreachRDD(process_rdd)
+# tags_totals.foreachRDD(process_rdd)
+tags_totals.foreachRDD(print_rdd)
+
 # start the streaming computation
 ssc.start()
 # wait for the streaming to finish

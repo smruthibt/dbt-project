@@ -54,7 +54,7 @@ def delete_all_rules(rules):
 def set_rules(delete):
     # You can adjust the rules if needed
     sample_rules = [
-        {"value": "elon has:images", "tag": "elon musk"},
+        {"value": "dog has:images", "tag": "dog"},
     ]
     payload = {"add": sample_rules}
     response = requests.post(
@@ -69,12 +69,12 @@ def set_rules(delete):
     print(json.dumps(response.json()))
 
 
-def get_stream(set):
+def get_stream(set, tcp_connection):
     response = requests.get(
         "https://api.twitter.com/2/tweets/search/stream", auth=bearer_oauth, stream=True,
     )
     print(response.status_code)
-    return_list = []
+
     if response.status_code != 200:
         raise Exception(
             "Cannot get stream (HTTP {}): {}".format(
@@ -84,24 +84,13 @@ def get_stream(set):
     for response_line in response.iter_lines():
         if response_line:
             json_response = json.loads(response_line)
-            return_list.append(json.dumps(json_response, indent=4, sort_keys=True)) 
-    
-    return return_list
-    
+            dumps = json.dumps(json_response, indent=4, sort_keys=True)
 
+            print(json_response['data']['text'])
+            # print(json_response)
 
-def send_tweets_to_spark(http_resp, tcp_connection):
-    for line in http_resp.iter_lines():
-        try:
-            full_tweet = json.loads(line)
-            print(full_tweet)
-            # tweet_text = full_tweet['text']
-            # print("Tweet Text: " + tweet_text)
-            # print ("------------------------------------------")
-            tcp_connection.send('tweet_text' + '\n')
-        except:
-            e = sys.exc_info()[0]
-            print("Error: %s" % e)
+            # tcp_connection.send(bytes(json_response['data']['text'],encoding="utf-8"))
+            tcp_connection.send(bytes(dumps,encoding="utf-8"))
 
 
 if __name__ == "__main__":
@@ -120,5 +109,5 @@ if __name__ == "__main__":
     set = set_rules(delete)
     
 
-    resp = get_stream(set)
-    send_tweets_to_spark(resp,conn)
+    get_stream(set, conn)
+    # send_tweets_to_spark(resp,conn)
